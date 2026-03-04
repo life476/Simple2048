@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Drawing;
 using System.IO;
@@ -105,16 +106,16 @@ namespace Simple2048
         }
 
         private string GetSecretKey()
-{
-    string part1 = "2048";
-    string part2 = Environment.MachineName;
-    string part3 = Environment.UserName;
+        {
+            string part1 = "2048";
+            string part2 = Environment.MachineName;
+            string part3 = Environment.UserName;
 
-    string raw = part1 + part2 + part3;
+            string raw = part1 + part2 + part3;
 
-    using var sha = System.Security.Cryptography.SHA256.Create();
-    var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
-    return Convert.ToBase64String(bytes);
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToBase64String(bytes);
 }
 
         private System.Windows.Forms.Timer? aiTimer;
@@ -145,7 +146,7 @@ namespace Simple2048
 
 
         private void InitMenu()
-        {
+{
             var menu = new MenuStrip();
 
             var file = new ToolStripMenuItem("File");
@@ -156,18 +157,25 @@ namespace Simple2048
             var ai = new ToolStripMenuItem("Smart AI");
             ai.Click += (_, _) => ToggleAI();
 
+            var undo = new ToolStripMenuItem("撤销 (Z)");
+            undo.ShortcutKeys = Keys.Control | Keys.Z; // 显示快捷键
+            undo.ShowShortcutKeys = true;
+            undo.Click += (_, _) => Undo();
+
             menu.Items.Add(file);
             menu.Items.Add(ai);
+            menu.Items.Add(undo);
 
             Controls.Add(menu);
             MainMenuStrip = menu;
-        }
+}
         private string ComputeHmac(string data)
 {
     using var hmac = new System.Security.Cryptography.HMACSHA256(
         Encoding.UTF8.GetBytes(GetSecretKey()));
 
     var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+    
     return Convert.ToBase64String(hash);
 }
 
@@ -215,6 +223,7 @@ namespace Simple2048
 
         private void UpdateUI()
         {
+            
             for (int r = 0; r < 4; r++)
                 for (int c = 0; c < 4; c++)
                 {
@@ -274,8 +283,15 @@ namespace Simple2048
 
         private bool DoMove(Func<bool> moveFunc)
         {
-            SaveState();
+            var backup = (int[,])board.Clone();
+            int oldScore = score;
+
             bool moved = moveFunc();
+            if (moved)
+{
+                boardHistory.Push(backup);
+                scoreHistory.Push(oldScore);
+}
             if (moved)
             {
                 SpawnTile();
